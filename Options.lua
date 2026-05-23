@@ -167,7 +167,7 @@ end
 
 local function BuildOptions()
     options = CreateFrame("Frame", "MeleeIndicatorOptions", UIParent, "BackdropTemplate")
-    options:SetSize(360, 700)
+    options:SetSize(360, 740)
     options:SetPoint("CENTER")
     options:SetFrameStrata("HIGH")
     options:SetMovable(true)
@@ -329,12 +329,37 @@ local function BuildOptions()
     outSwatch:SetPoint("TOPLEFT", inSwatch, "BOTTOMLEFT", 0, -8)
     widgets.outSwatch = outSwatch
 
-    local spellLabel = MakeLabel(options, "Range spell (name or ID, blank = Auto Attack):", outSwatch, 0, -16)
+    local spellLabel = options:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    spellLabel:SetPoint("TOPLEFT", outSwatch, "BOTTOMLEFT", 0, -16)
+    widgets.spellLabel = spellLabel
+
+    local spellDropdown = MakeDropdown(options, 200, function()
+        local choices = addon.GetSpellChoices()
+        local items = {}
+        for _, c in ipairs(choices) do
+            items[#items + 1] = { name = c.name, path = c.value }
+        end
+        return items
+    end,
+        function() return addon.GetActiveRangeSpellSetting() end,
+        function(value)
+            addon.SetActiveRangeSpellSetting(value)
+            if widgets.spellEdit then widgets.spellEdit:SetText(value or "") end
+            addon.UpdateIndicator()
+        end)
+    spellDropdown:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", -16, -2)
+    widgets.spellDropdown = spellDropdown
+
+    local spellEditLabel = options:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    spellEditLabel:SetPoint("TOPLEFT", spellDropdown, "BOTTOMLEFT", 16, -4)
+    spellEditLabel:SetText("Or type a spell name or ID:")
+
     local spellEdit = MakeEditBox(options, 200)
-    spellEdit:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -6)
+    spellEdit:SetPoint("TOPLEFT", spellEditLabel, "BOTTOMLEFT", 0, -4)
     spellEdit:SetScript("OnEnterPressed", function(self)
-        MeleeIndicatorDB.rangeSpell = self:GetText() or ""
+        addon.SetActiveRangeSpellSetting(self:GetText() or "")
         self:ClearFocus()
+        if widgets.spellDropdown then widgets.spellDropdown.Refresh() end
         addon.UpdateIndicator()
     end)
     spellEdit:SetScript("OnEscapePressed", EditBox_ClearFocus)
@@ -364,7 +389,14 @@ local function RefreshOptions()
     widgets.borderSwatch.Refresh()
     widgets.xEdit:SetText(tostring(MeleeIndicatorDB.position.x or 0))
     widgets.yEdit:SetText(tostring(MeleeIndicatorDB.position.y or 0))
-    widgets.spellEdit:SetText(MeleeIndicatorDB.rangeSpell or "")
+    local specName = addon.GetCurrentSpecName()
+    if specName then
+        widgets.spellLabel:SetText("Range spell for " .. specName .. " (blank = Auto Attack):")
+    else
+        widgets.spellLabel:SetText("Range spell (blank = Auto Attack):")
+    end
+    widgets.spellEdit:SetText(addon.GetActiveRangeSpellSetting() or "")
+    widgets.spellDropdown.Refresh()
     widgets.inSwatch.Refresh()
     widgets.outSwatch.Refresh()
 end

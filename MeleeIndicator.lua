@@ -41,6 +41,7 @@ local defaults = {
     shape = "square",
     locked = false,
     rangeSpell = "",
+    rangeSpellBySpec = {},
     inRangeColor = { r = 0.20, g = 1.00, b = 0.20, a = 0.90 },
     outOfRangeColor = { r = 1.00, g = 0.20, b = 0.20, a = 0.90 },
     border = {
@@ -50,6 +51,85 @@ local defaults = {
     },
 }
 addon.defaults = defaults
+
+function addon.GetCurrentSpecID()
+    if not GetSpecialization then return nil end
+    local idx = GetSpecialization()
+    if not idx or idx < 1 then return nil end
+    if not GetSpecializationInfo then return nil end
+    local id = GetSpecializationInfo(idx)
+    return id
+end
+
+function addon.GetCurrentSpecName()
+    if not GetSpecialization then return nil end
+    local idx = GetSpecialization()
+    if not idx or idx < 1 then return nil end
+    if not GetSpecializationInfo then return nil end
+    local _, name = GetSpecializationInfo(idx)
+    return name
+end
+
+function addon.GetActiveRangeSpellSetting()
+    local specID = addon.GetCurrentSpecID()
+    if specID then
+        local v = MeleeIndicatorDB.rangeSpellBySpec and MeleeIndicatorDB.rangeSpellBySpec[specID]
+        if v and v ~= "" then return v end
+    end
+    return MeleeIndicatorDB.rangeSpell or ""
+end
+
+function addon.SetActiveRangeSpellSetting(value)
+    value = value or ""
+    local specID = addon.GetCurrentSpecID()
+    if specID then
+        MeleeIndicatorDB.rangeSpellBySpec = MeleeIndicatorDB.rangeSpellBySpec or {}
+        MeleeIndicatorDB.rangeSpellBySpec[specID] = value
+    else
+        MeleeIndicatorDB.rangeSpell = value
+    end
+end
+
+local spellChoiceCache
+function addon.GetSpellChoices(forceRefresh)
+    if spellChoiceCache and not forceRefresh then return spellChoiceCache end
+    local seen = {}
+    local list = { { id = 0, name = "Auto Attack (default)", value = "" } }
+    if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines and C_SpellBook.GetSpellBookItemInfo then
+        local bank = (Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player) or 0
+        local spellType = Enum and Enum.SpellBookItemType and Enum.SpellBookItemType.Spell
+        local numLines = C_SpellBook.GetNumSpellBookSkillLines() or 0
+        for line = 1, numLines do
+            local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(line)
+            if lineInfo and not lineInfo.shouldHide then
+                local offset = lineInfo.itemIndexOffset or 0
+                local count = lineInfo.numSpellBookItems or 0
+                for i = 1, count do
+                    local info = C_SpellBook.GetSpellBookItemInfo(offset + i, bank)
+                    if info and info.spellID and info.name and not seen[info.spellID] then
+                        local isSpell = (spellType == nil) or (info.itemType == spellType)
+                        local isPassive = C_Spell and C_Spell.IsSpellPassive and C_Spell.IsSpellPassive(info.spellID)
+                        if isSpell and not isPassive then
+                            seen[info.spellID] = true
+                            list[#list + 1] = { id = info.spellID, name = info.name, value = tostring(info.spellID) }
+                        end
+                    end
+                end
+            end
+        end
+    end
+    table.sort(list, function(a, b)
+        if a.id == 0 then return true end
+        if b.id == 0 then return false end
+        return a.name < b.name
+    end)
+    spellChoiceCache = list
+    return list
+end
+
+function addon.InvalidateSpellChoices()
+    spellChoiceCache = nil
+end
 
 local function CopyDefaults(src, dst)
     if type(dst) ~= "table" then dst = {} end
@@ -182,7 +262,7 @@ local function ShouldShowIndicator()
 end
 
 local function ResolveRangeSpell()
-    local custom = MeleeIndicatorDB.rangeSpell
+    local custom = addon.GetActiveRangeSpellSetting()
     if custom and custom ~= "" then
         if tonumber(custom) then return tonumber(custom) end
         return custom
@@ -311,6 +391,8 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:RegisterEvent("PLAYER_TARGET_CHANGED")
+loader:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+loader:RegisterEvent("SPELLS_CHANGED")
 loader:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         InitDB()
@@ -319,6 +401,12 @@ loader:SetScript("OnEvent", function(self, event, arg1)
         ApplyAll()
     elseif event == "PLAYER_TARGET_CHANGED" then
         UpdateIndicator()
+    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
+        UpdateIndicator()
+        if addon.RefreshOptions then addon.RefreshOptions() end
+    elseif event == "SPELLS_CHANGED" then
+        addon.InvalidateSpellChoices()
+        if addon.RefreshOptions then addon.RefreshOptions() end
     end
 end)
 
