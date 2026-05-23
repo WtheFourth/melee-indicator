@@ -4,6 +4,10 @@ A lightweight World of Warcraft addon that displays a configurable shape on
 your screen. The shape changes color depending on whether your current target
 is within range of a chosen melee spell.
 
+Note: I made this at midnight using Claude on my iPad, and have not tested anything
+yet. I saw a YouTube video that had something similar and wanted to see what I could
+spin up, and this is the result. 
+
 ## Features
 
 - Four shapes: square (default), circle, diamond, triangle
