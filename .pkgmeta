@@ -1,0 +1,11 @@
+package-as: MeleeIndicator
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - .github
+  - .gitignore
+  - .pkgmeta
+  - README.md
