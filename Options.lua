@@ -194,15 +194,16 @@ local function BuildOptions()
     local close = CreateFrame("Button", nil, options, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -4, -4)
 
-    local lockCb = MakeCheckBox(options, "Lock indicator (uncheck to drag)", function(checked)
-        MeleeIndicatorDB.locked = checked
+    local lockBtn = MakeButton(options, "", 160, function()
+        MeleeIndicatorDB.locked = not MeleeIndicatorDB.locked
         addon.ApplyLockState()
         addon.UpdateIndicator()
+        if addon.RefreshOptions then addon.RefreshOptions() end
     end)
-    lockCb:SetPoint("TOPLEFT", 20, -48)
-    widgets.lockCb = lockCb
+    lockBtn:SetPoint("TOPLEFT", 20, -48)
+    widgets.lockBtn = lockBtn
 
-    local shapeLabel = MakeLabel(options, "Shape:", lockCb, 0, -8)
+    local shapeLabel = MakeLabel(options, "Shape:", lockBtn, 0, -8)
     local shapeButtons = {}
     local shapeX = 0
     for i, shape in ipairs(addon.SHAPES) do
@@ -373,7 +374,7 @@ end
 
 local function RefreshOptions()
     if not options then return end
-    widgets.lockCb:SetChecked(MeleeIndicatorDB.locked and true or false)
+    widgets.lockBtn:SetText(MeleeIndicatorDB.locked and "Unlock indicator" or "Lock indicator")
     for _, b in ipairs(widgets.shapeButtons) do
         if b.shape == MeleeIndicatorDB.shape then
             b:LockHighlight()
