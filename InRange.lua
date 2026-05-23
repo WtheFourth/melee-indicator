@@ -36,10 +36,10 @@ function addon.GetBorderTextureChoices()
 end
 
 local defaults = {
-    position = { point = "CENTER", relativePoint = "CENTER", x = 0, y = -150 },
+    position = { point = "CENTER", relativePoint = "CENTER", x = 0, y = -30 },
     size = 40,
     shape = "square",
-    locked = false,
+    locked = true,
     rangeSpell = "",
     rangeSpellBySpec = {},
     inRangeColor = { r = 0.20, g = 1.00, b = 0.20, a = 0.90 },
@@ -73,20 +73,20 @@ end
 function addon.GetActiveRangeSpellSetting()
     local specID = addon.GetCurrentSpecID()
     if specID then
-        local v = MeleeIndicatorDB.rangeSpellBySpec and MeleeIndicatorDB.rangeSpellBySpec[specID]
+        local v = InRangeDB.rangeSpellBySpec and InRangeDB.rangeSpellBySpec[specID]
         if v and v ~= "" then return v end
     end
-    return MeleeIndicatorDB.rangeSpell or ""
+    return InRangeDB.rangeSpell or ""
 end
 
 function addon.SetActiveRangeSpellSetting(value)
     value = value or ""
     local specID = addon.GetCurrentSpecID()
     if specID then
-        MeleeIndicatorDB.rangeSpellBySpec = MeleeIndicatorDB.rangeSpellBySpec or {}
-        MeleeIndicatorDB.rangeSpellBySpec[specID] = value
+        InRangeDB.rangeSpellBySpec = InRangeDB.rangeSpellBySpec or {}
+        InRangeDB.rangeSpellBySpec[specID] = value
     else
-        MeleeIndicatorDB.rangeSpell = value
+        InRangeDB.rangeSpell = value
     end
 end
 
@@ -149,8 +149,11 @@ local indicatorTex
 local borderTex
 local updateTimer = 0
 
-local CIRCLE_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+local CIRCLE_MASK = "Interface\\Masks\\CircleMaskScalable"
 local NO_MASK = "Interface\\Buttons\\WHITE8X8"
+
+local UPPER_LEFT_VERTEX_IDX = _G.UPPER_LEFT_VERTEX or 0
+local UPPER_RIGHT_VERTEX_IDX = _G.UPPER_RIGHT_VERTEX or 2
 
 local function ResetTexture(tex)
     tex:ClearAllPoints()
@@ -162,16 +165,14 @@ local function ResetTexture(tex)
 end
 
 local function GetTriangleVertexIndices()
-    local upperLeft = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperLeftVertex) or 0
-    local upperRight = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperRightVertex) or 2
-    return upperLeft, upperRight
+    return UPPER_LEFT_VERTEX_IDX, UPPER_RIGHT_VERTEX_IDX
 end
 
 local function ApplyShape()
     if not indicator or not indicatorTex or not borderTex then return end
-    local shape = MeleeIndicatorDB.shape or "square"
-    local size = MeleeIndicatorDB.size or 40
-    local b = MeleeIndicatorDB.border or {}
+    local shape = InRangeDB.shape or "square"
+    local size = InRangeDB.size or 40
+    local b = InRangeDB.border or {}
     local borderSize = (b.size and b.size > 0) and b.size or 0
 
     indicator:SetSize(size, size)
@@ -215,7 +216,7 @@ addon.ApplyShape = ApplyShape
 
 local function ApplyBorder()
     if not borderTex then return end
-    local b = MeleeIndicatorDB.border or {}
+    local b = InRangeDB.border or {}
     borderTex:SetTexture(b.texture or "Interface\\Buttons\\WHITE8X8")
     local c = b.color or { r = 0, g = 0, b = 0, a = 1 }
     borderTex:SetVertexColor(c.r, c.g, c.b, c.a)
@@ -229,7 +230,7 @@ addon.ApplyBorder = ApplyBorder
 
 local function ApplyPosition()
     if not indicator then return end
-    local p = MeleeIndicatorDB.position or {}
+    local p = InRangeDB.position or {}
     indicator:ClearAllPoints()
     local ok = pcall(function()
         indicator:SetPoint(
@@ -241,24 +242,24 @@ local function ApplyPosition()
         )
     end)
     if not ok then
-        MeleeIndicatorDB.position = CopyDefaults(defaults.position, {})
+        InRangeDB.position = CopyDefaults(defaults.position, {})
         indicator:ClearAllPoints()
-        local d = MeleeIndicatorDB.position
+        local d = InRangeDB.position
         indicator:SetPoint(d.point, UIParent, d.relativePoint, d.x, d.y)
-        print("|cff66ccffMelee Indicator|r: saved position was invalid; reset to default.")
+        print("|cff66ccffInRange|r: saved position was invalid; reset to default.")
     end
 end
 addon.ApplyPosition = ApplyPosition
 
 local function ApplyColor(inRange)
     if not indicatorTex then return end
-    local c = inRange and MeleeIndicatorDB.inRangeColor or MeleeIndicatorDB.outOfRangeColor
+    local c = inRange and InRangeDB.inRangeColor or InRangeDB.outOfRangeColor
     indicatorTex:SetVertexColor(c.r, c.g, c.b, c.a)
 end
 
 local function ApplyLockState()
     if not indicator then return end
-    if MeleeIndicatorDB.locked then
+    if InRangeDB.locked then
         indicator:EnableMouse(false)
         indicator:SetMovable(false)
         if indicator.dragHint then indicator.dragHint:Hide() end
@@ -321,7 +322,7 @@ end
 
 local function UpdateIndicator()
     if not indicator then return end
-    if MeleeIndicatorDB.locked == false then
+    if InRangeDB.locked == false then
         indicator:Show()
         ApplyColor(true)
         return
@@ -336,7 +337,7 @@ end
 addon.UpdateIndicator = UpdateIndicator
 
 local function CreateIndicator()
-    indicator = CreateFrame("Frame", "MeleeIndicatorFrame", UIParent, "BackdropTemplate")
+    indicator = CreateFrame("Frame", "InRangeFrame", UIParent, "BackdropTemplate")
     indicator:SetFrameStrata("MEDIUM")
     indicator:SetClampedToScreen(true)
 
@@ -357,16 +358,16 @@ local function CreateIndicator()
 
     indicator:RegisterForDrag("LeftButton")
     indicator:SetScript("OnDragStart", function(self)
-        if MeleeIndicatorDB.locked then return end
+        if InRangeDB.locked then return end
         self:StartMoving()
     end)
     indicator:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         local point, _, relativePoint, x, y = self:GetPoint()
-        MeleeIndicatorDB.position.point = point
-        MeleeIndicatorDB.position.relativePoint = relativePoint
-        MeleeIndicatorDB.position.x = x
-        MeleeIndicatorDB.position.y = y
+        InRangeDB.position.point = point
+        InRangeDB.position.relativePoint = relativePoint
+        InRangeDB.position.x = x
+        InRangeDB.position.y = y
         if addon.RefreshOptionsPositionFields then
             addon.RefreshOptionsPositionFields()
         end
@@ -384,7 +385,11 @@ local function CreateIndicator()
 end
 
 local function InitDB()
-    MeleeIndicatorDB = CopyDefaults(defaults, MeleeIndicatorDB or {})
+    if MeleeIndicatorDB and not InRangeDB then
+        InRangeDB = MeleeIndicatorDB
+        MeleeIndicatorDB = nil
+    end
+    InRangeDB = CopyDefaults(defaults, InRangeDB or {})
 end
 
 local function ApplyAll()
@@ -397,7 +402,7 @@ end
 addon.ApplyAll = ApplyAll
 
 local function ResetToDefaults()
-    MeleeIndicatorDB = CopyDefaults(defaults, {})
+    InRangeDB = CopyDefaults(defaults, {})
     ApplyAll()
     if addon.RefreshOptions then addon.RefreshOptions() end
 end
@@ -427,10 +432,10 @@ loader:SetScript("OnEvent", function(self, event, arg1)
 end)
 
 local function PrintHelp()
-    print("|cff66ccffMelee Indicator|r commands:")
-    print("  |cffffff00/melee|r or |cffffff00/mi|r - open options")
-    print("  |cffffff00/mi reset|r - reset to defaults")
-    print("  |cffffff00/mi lock|r / |cffffff00/mi unlock|r - lock or unlock the indicator")
+    print("|cff66ccffInRange|r commands:")
+    print("  |cffffff00/inrange|r or |cffffff00/ir|r - open options")
+    print("  |cffffff00/ir reset|r - reset to defaults")
+    print("  |cffffff00/ir lock|r / |cffffff00/ir unlock|r - lock or unlock the indicator")
 end
 
 local function HandleSlash(msg)
@@ -439,14 +444,14 @@ local function HandleSlash(msg)
         if addon.ToggleOptions then addon.ToggleOptions() end
     elseif msg == "reset" then
         ResetToDefaults()
-        print("|cff66ccffMelee Indicator|r: settings reset to defaults.")
+        print("|cff66ccffInRange|r: settings reset to defaults.")
     elseif msg == "lock" then
-        MeleeIndicatorDB.locked = true
+        InRangeDB.locked = true
         ApplyLockState()
         UpdateIndicator()
         if addon.RefreshOptions then addon.RefreshOptions() end
     elseif msg == "unlock" then
-        MeleeIndicatorDB.locked = false
+        InRangeDB.locked = false
         ApplyLockState()
         UpdateIndicator()
         if addon.RefreshOptions then addon.RefreshOptions() end
@@ -457,6 +462,6 @@ local function HandleSlash(msg)
     end
 end
 
-SLASH_MELEEINDICATOR1 = "/melee"
-SLASH_MELEEINDICATOR2 = "/mi"
-SlashCmdList["MELEEINDICATOR"] = HandleSlash
+SLASH_INRANGE1 = "/inrange"
+SLASH_INRANGE2 = "/ir"
+SlashCmdList["INRANGE"] = HandleSlash

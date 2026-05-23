@@ -59,7 +59,7 @@ end
 local dropdownCounter = 0
 local function MakeDropdown(parent, width, getItems, getValue, setValue)
     dropdownCounter = dropdownCounter + 1
-    local dd = CreateFrame("Frame", "MeleeIndicatorDropdown" .. dropdownCounter, parent, "UIDropDownMenuTemplate")
+    local dd = CreateFrame("Frame", "InRangeDropdown" .. dropdownCounter, parent, "UIDropDownMenuTemplate")
     UIDropDownMenu_SetWidth(dd, width or 160)
 
     local function SetTextFromValue()
@@ -166,8 +166,8 @@ local function MakeColorSwatch(parent, label, getColor, setColor)
 end
 
 local function BuildOptions()
-    options = CreateFrame("Frame", "MeleeIndicatorOptions", UIParent, "BackdropTemplate")
-    options:SetSize(360, 740)
+    options = CreateFrame("Frame", "InRangeOptions", UIParent, "BackdropTemplate")
+    options:SetSize(420, 740)
     options:SetPoint("CENTER")
     options:SetFrameStrata("HIGH")
     options:SetMovable(true)
@@ -189,13 +189,13 @@ local function BuildOptions()
 
     local title = options:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOP", 0, -16)
-    title:SetText("Melee Indicator")
+    title:SetText("InRange")
 
     local close = CreateFrame("Button", nil, options, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -4, -4)
 
     local lockBtn = MakeButton(options, "", 160, function()
-        MeleeIndicatorDB.locked = not MeleeIndicatorDB.locked
+        InRangeDB.locked = not InRangeDB.locked
         addon.ApplyLockState()
         addon.UpdateIndicator()
         if addon.RefreshOptions then addon.RefreshOptions() end
@@ -212,7 +212,7 @@ local function BuildOptions()
         btn:SetText(shape:sub(1, 1):upper() .. shape:sub(2))
         btn:SetPoint("TOPLEFT", shapeLabel, "BOTTOMLEFT", shapeX, -4)
         btn:SetScript("OnClick", function()
-            MeleeIndicatorDB.shape = shape
+            InRangeDB.shape = shape
             addon.ApplyShape()
             for _, b in ipairs(shapeButtons) do
                 b:UnlockHighlight()
@@ -226,7 +226,7 @@ local function BuildOptions()
     widgets.shapeButtons = shapeButtons
 
     local sizeSlider = MakeSlider(options, "Size", 16, 128, 1, function(value)
-        MeleeIndicatorDB.size = value
+        InRangeDB.size = value
         addon.ApplyShape()
     end)
     sizeSlider:SetPoint("TOPLEFT", shapeButtons[1], "BOTTOMLEFT", 4, -24)
@@ -237,16 +237,16 @@ local function BuildOptions()
     borderHeader:SetText("Border:")
 
     local borderDropdown = MakeDropdown(options, 180, addon.GetBorderTextureChoices,
-        function() return MeleeIndicatorDB.border.texture end,
+        function() return InRangeDB.border.texture end,
         function(path)
-            MeleeIndicatorDB.border.texture = path
+            InRangeDB.border.texture = path
             addon.ApplyBorder()
         end)
     borderDropdown:SetPoint("TOPLEFT", borderHeader, "BOTTOMLEFT", -16, -2)
     widgets.borderDropdown = borderDropdown
 
     local borderSizeSlider = MakeSlider(options, "Border thickness (0 = off)", 0, 8, 1, function(value)
-        MeleeIndicatorDB.border.size = value
+        InRangeDB.border.size = value
         addon.ApplyShape()
         addon.ApplyBorder()
     end)
@@ -254,9 +254,9 @@ local function BuildOptions()
     widgets.borderSizeSlider = borderSizeSlider
 
     local borderSwatch = MakeColorSwatch(options, "Border color",
-        function() return MeleeIndicatorDB.border.color end,
+        function() return InRangeDB.border.color end,
         function(r, g, b, a)
-            local c = MeleeIndicatorDB.border.color
+            local c = InRangeDB.border.color
             c.r, c.g, c.b, c.a = r, g, b, a
             addon.ApplyBorder()
         end)
@@ -274,7 +274,7 @@ local function BuildOptions()
     xEdit:SetScript("OnEnterPressed", function(self)
         local v = tonumber(self:GetText())
         if v then
-            MeleeIndicatorDB.position.x = v
+            InRangeDB.position.x = v
             addon.ApplyPosition()
         end
         self:ClearFocus()
@@ -290,7 +290,7 @@ local function BuildOptions()
     yEdit:SetScript("OnEnterPressed", function(self)
         local v = tonumber(self:GetText())
         if v then
-            MeleeIndicatorDB.position.y = v
+            InRangeDB.position.y = v
             addon.ApplyPosition()
         end
         self:ClearFocus()
@@ -301,19 +301,16 @@ local function BuildOptions()
     widgets.yEdit = yEdit
 
     local centerBtn = MakeButton(options, "Center", 70, function()
-        MeleeIndicatorDB.position.point = "CENTER"
-        MeleeIndicatorDB.position.relativePoint = "CENTER"
-        MeleeIndicatorDB.position.x = 0
-        MeleeIndicatorDB.position.y = -150
+        InRangeDB.position.x = 0
         addon.ApplyPosition()
         addon.RefreshOptionsPositionFields()
     end)
     centerBtn:SetPoint("LEFT", yEdit, "RIGHT", 12, 0)
 
     local inSwatch = MakeColorSwatch(options, "In-range color",
-        function() return MeleeIndicatorDB.inRangeColor end,
+        function() return InRangeDB.inRangeColor end,
         function(r, g, b, a)
-            local c = MeleeIndicatorDB.inRangeColor
+            local c = InRangeDB.inRangeColor
             c.r, c.g, c.b, c.a = r, g, b, a
             addon.UpdateIndicator()
         end)
@@ -321,9 +318,9 @@ local function BuildOptions()
     widgets.inSwatch = inSwatch
 
     local outSwatch = MakeColorSwatch(options, "Out-of-range color",
-        function() return MeleeIndicatorDB.outOfRangeColor end,
+        function() return InRangeDB.outOfRangeColor end,
         function(r, g, b, a)
-            local c = MeleeIndicatorDB.outOfRangeColor
+            local c = InRangeDB.outOfRangeColor
             c.r, c.g, c.b, c.a = r, g, b, a
             addon.UpdateIndicator()
         end)
@@ -374,22 +371,22 @@ end
 
 local function RefreshOptions()
     if not options then return end
-    widgets.lockBtn:SetText(MeleeIndicatorDB.locked and "Unlock indicator" or "Lock indicator")
+    widgets.lockBtn:SetText(InRangeDB.locked and "Unlock indicator" or "Lock indicator")
     for _, b in ipairs(widgets.shapeButtons) do
-        if b.shape == MeleeIndicatorDB.shape then
+        if b.shape == InRangeDB.shape then
             b:LockHighlight()
         else
             b:UnlockHighlight()
         end
     end
-    widgets.sizeSlider:SetValue(MeleeIndicatorDB.size)
-    widgets.sizeSlider.valueText:SetText(tostring(MeleeIndicatorDB.size))
-    widgets.borderSizeSlider:SetValue(MeleeIndicatorDB.border.size or 0)
-    widgets.borderSizeSlider.valueText:SetText(tostring(MeleeIndicatorDB.border.size or 0))
+    widgets.sizeSlider:SetValue(InRangeDB.size)
+    widgets.sizeSlider.valueText:SetText(tostring(InRangeDB.size))
+    widgets.borderSizeSlider:SetValue(InRangeDB.border.size or 0)
+    widgets.borderSizeSlider.valueText:SetText(tostring(InRangeDB.border.size or 0))
     widgets.borderDropdown.Refresh()
     widgets.borderSwatch.Refresh()
-    widgets.xEdit:SetText(tostring(MeleeIndicatorDB.position.x or 0))
-    widgets.yEdit:SetText(tostring(MeleeIndicatorDB.position.y or 0))
+    widgets.xEdit:SetText(tostring(InRangeDB.position.x or 0))
+    widgets.yEdit:SetText(tostring(InRangeDB.position.y or 0))
     local specName = addon.GetCurrentSpecName()
     if specName then
         widgets.spellLabel:SetText("Range spell for " .. specName .. " (blank = Auto Attack):")
@@ -405,8 +402,8 @@ addon.RefreshOptions = RefreshOptions
 
 local function RefreshOptionsPositionFields()
     if not options then return end
-    widgets.xEdit:SetText(tostring(math.floor((MeleeIndicatorDB.position.x or 0) + 0.5)))
-    widgets.yEdit:SetText(tostring(math.floor((MeleeIndicatorDB.position.y or 0) + 0.5)))
+    widgets.xEdit:SetText(tostring(math.floor((InRangeDB.position.x or 0) + 0.5)))
+    widgets.yEdit:SetText(tostring(math.floor((InRangeDB.position.y or 0) + 0.5)))
 end
 addon.RefreshOptionsPositionFields = RefreshOptionsPositionFields
 

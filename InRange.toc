@@ -1,0 +1,10 @@
+## Interface: 120000, 120001, 120005
+## Title: InRange
+## Notes: Shows a configurable shape that changes color based on whether your target is within range of a chosen spell. Defaults to Auto Attack range.
+## Author: walter.kennedy4
+## Version: 1.0.0
+## SavedVariables: InRangeDB
+## IconTexture: Interface\Icons\Ability_Warrior_Charge
+
+InRange.lua
+Options.lua

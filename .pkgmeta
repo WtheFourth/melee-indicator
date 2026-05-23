@@ -1,4 +1,4 @@
-package-as: MeleeIndicator
+package-as: InRange
 
 manual-changelog:
   filename: CHANGELOG.md
