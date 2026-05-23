@@ -150,11 +150,12 @@ local borderTex
 local updateTimer = 0
 
 local CIRCLE_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+local NO_MASK = "Interface\\Buttons\\WHITE8X8"
 
 local function ResetTexture(tex)
     tex:ClearAllPoints()
     tex:SetRotation(0)
-    tex:SetMask(nil)
+    tex:SetMask(NO_MASK)
     if tex.SetVertexOffset then
         for i = 0, 3 do tex:SetVertexOffset(i, 0, 0) end
     end
