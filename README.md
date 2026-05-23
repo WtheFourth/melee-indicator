@@ -1,12 +1,16 @@
-# Melee Indicator
+# InRange
 
 A lightweight World of Warcraft addon that displays a configurable shape on
 your screen. The shape changes color depending on whether your current target
-is within range of a chosen melee spell.
+is within range of a chosen spell.
 
-Note: I made this at midnight using Claude on my iPad, and have not tested anything
-yet. I saw a YouTube video that had something similar and wanted to see what I could
-spin up, and this is the result. 
+Defaults to Auto Attack range, so it works out of the box as a melee range
+indicator &mdash; but you can configure any spell, which means it doubles as a
+generic range indicator for casters or hunters too.
+
+Note: I made this at midnight using Claude on my iPad, and have not tested
+anything yet. I saw a YouTube video that had something similar and wanted to
+see what I could spin up, and this is the result.
 
 ## Features
 
@@ -25,15 +29,15 @@ spin up, and this is the result.
 
 | Command | What it does |
 | --- | --- |
-| `/melee` or `/mi` | Open / close the options window |
-| `/mi lock` | Lock the indicator (only shows when targeting an enemy) |
-| `/mi unlock` | Unlock the indicator so it can be dragged |
-| `/mi reset` | Restore all settings to defaults |
+| `/inrange` or `/ir` | Open / close the options window |
+| `/ir lock` | Lock the indicator (only shows when targeting an enemy) |
+| `/ir unlock` | Unlock the indicator so it can be dragged |
+| `/ir reset` | Restore all settings to defaults |
 
 ## Installation
 
 1. Download the latest release zip from CurseForge (or this repository).
-2. Extract the `MeleeIndicator` folder into
+2. Extract the `InRange` folder into
    `World of Warcraft/_retail_/Interface/AddOns/`.
 3. Restart the client (or `/reload`) and target an enemy to see the
    indicator.

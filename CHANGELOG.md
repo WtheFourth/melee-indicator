@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Melee Indicator will be documented in this file.
+All notable changes to InRange will be documented in this file.
 
 ## [1.0.0] - 2026-05-23
 
@@ -17,7 +17,7 @@ All notable changes to Melee Indicator will be documented in this file.
 - Range spell stored per specialization, populated from the player's
   spellbook with a manual name / spell-ID override.
 - Indicator only renders when targeting an attackable, living enemy.
-- Slash commands `/melee` and `/mi`, with `lock`, `unlock`, and `reset`
+- Slash commands `/inrange` and `/ir`, with `lock`, `unlock`, and `reset`
   subcommands.
 - Saved-variable position is validated on load; corrupted positions reset to
   the default instead of throwing an error.
