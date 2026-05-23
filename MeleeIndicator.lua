@@ -6,6 +6,35 @@ local UPDATE_INTERVAL = 0.1
 local SHAPES = { "square", "circle", "diamond", "triangle" }
 addon.SHAPES = SHAPES
 
+local BORDER_TEXTURES = {
+    { name = "Solid",            path = "Interface\\Buttons\\WHITE8X8" },
+    { name = "Tooltip",          path = "Interface\\Tooltips\\UI-Tooltip-Border" },
+    { name = "Dialog",           path = "Interface\\DialogFrame\\UI-DialogBox-Border" },
+    { name = "Chat Background",  path = "Interface\\ChatFrame\\ChatFrameBackground" },
+    { name = "Achievement Wood", path = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder" },
+    { name = "Text Panel",       path = "Interface\\GLUES\\COMMON\\TextPanel-Border" },
+}
+addon.BORDER_TEXTURES = BORDER_TEXTURES
+
+function addon.GetBorderTextureChoices()
+    local list = {}
+    for _, t in ipairs(BORDER_TEXTURES) do
+        list[#list + 1] = { name = t.name, path = t.path }
+    end
+    if LibStub then
+        local ok, LSM = pcall(LibStub, "LibSharedMedia-3.0", true)
+        if ok and LSM and LSM.List then
+            local names = LSM:List("border")
+            if names then
+                for _, name in ipairs(names) do
+                    list[#list + 1] = { name = "LSM: " .. name, path = LSM:Fetch("border", name) }
+                end
+            end
+        end
+    end
+    return list
+end
+
 local defaults = {
     position = { point = "CENTER", relativePoint = "CENTER", x = 0, y = -150 },
     size = 40,
@@ -14,6 +43,11 @@ local defaults = {
     rangeSpell = "",
     inRangeColor = { r = 0.20, g = 1.00, b = 0.20, a = 0.90 },
     outOfRangeColor = { r = 1.00, g = 0.20, b = 0.20, a = 0.90 },
+    border = {
+        texture = "Interface\\Buttons\\WHITE8X8",
+        size = 1,
+        color = { r = 0.00, g = 0.00, b = 0.00, a = 1.00 },
+    },
 }
 addon.defaults = defaults
 
@@ -32,41 +66,85 @@ addon.CopyDefaults = CopyDefaults
 
 local indicator
 local indicatorTex
+local borderTex
 local updateTimer = 0
 
+local CIRCLE_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+
+local function ResetTexture(tex)
+    tex:ClearAllPoints()
+    tex:SetRotation(0)
+    tex:SetMask(nil)
+    if tex.SetVertexOffset then
+        for i = 0, 3 do tex:SetVertexOffset(i, 0, 0) end
+    end
+end
+
+local function GetTriangleVertexIndices()
+    local upperLeft = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperLeftVertex) or 0
+    local upperRight = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperRightVertex) or 2
+    return upperLeft, upperRight
+end
+
 local function ApplyShape()
-    if not indicator or not indicatorTex then return end
+    if not indicator or not indicatorTex or not borderTex then return end
     local shape = MeleeIndicatorDB.shape or "square"
     local size = MeleeIndicatorDB.size or 40
+    local b = MeleeIndicatorDB.border or {}
+    local borderSize = (b.size and b.size > 0) and b.size or 0
 
     indicator:SetSize(size, size)
-    indicatorTex:ClearAllPoints()
-    indicatorTex:SetAllPoints(indicator)
-    indicatorTex:SetRotation(0)
-    indicatorTex:SetMask(nil)
-    if indicatorTex.SetVertexOffset then
-        for i = 0, 3 do indicatorTex:SetVertexOffset(i, 0, 0) end
-    end
+    ResetTexture(borderTex)
+    ResetTexture(indicatorTex)
 
-    if shape == "circle" then
-        indicatorTex:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask")
+    if shape == "square" then
+        borderTex:SetAllPoints(indicator)
+        indicatorTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", borderSize, -borderSize)
+        indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -borderSize, borderSize)
+    elseif shape == "circle" then
+        borderTex:SetAllPoints(indicator)
+        borderTex:SetMask(CIRCLE_MASK)
+        indicatorTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", borderSize, -borderSize)
+        indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -borderSize, borderSize)
+        indicatorTex:SetMask(CIRCLE_MASK)
     elseif shape == "diamond" then
+        local inset = size * 0.146
+        borderTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", inset, -inset)
+        borderTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -inset, inset)
+        borderTex:SetRotation(math.rad(45))
+        indicatorTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", inset + borderSize, -(inset + borderSize))
+        indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -(inset + borderSize), inset + borderSize)
         indicatorTex:SetRotation(math.rad(45))
-        local inset = size * 0.15
-        indicator:SetSize(size, size)
-        indicatorTex:ClearAllPoints()
-        indicatorTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", inset, -inset)
-        indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -inset, inset)
     elseif shape == "triangle" then
-        if indicatorTex.SetVertexOffset then
-            local upperLeft = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperLeftVertex) or 0
-            local upperRight = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperRightVertex) or 2
-            indicatorTex:SetVertexOffset(upperLeft, size / 2, 0)
-            indicatorTex:SetVertexOffset(upperRight, -size / 2, 0)
+        borderTex:SetAllPoints(indicator)
+        indicatorTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", borderSize, -borderSize)
+        indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -borderSize, borderSize)
+        if borderTex.SetVertexOffset then
+            local upperLeft, upperRight = GetTriangleVertexIndices()
+            borderTex:SetVertexOffset(upperLeft, size / 2, 0)
+            borderTex:SetVertexOffset(upperRight, -size / 2, 0)
+            local innerSize = size - 2 * borderSize
+            if innerSize < 0 then innerSize = 0 end
+            indicatorTex:SetVertexOffset(upperLeft, innerSize / 2, 0)
+            indicatorTex:SetVertexOffset(upperRight, -innerSize / 2, 0)
         end
     end
 end
 addon.ApplyShape = ApplyShape
+
+local function ApplyBorder()
+    if not borderTex then return end
+    local b = MeleeIndicatorDB.border or {}
+    borderTex:SetTexture(b.texture or "Interface\\Buttons\\WHITE8X8")
+    local c = b.color or { r = 0, g = 0, b = 0, a = 1 }
+    borderTex:SetVertexColor(c.r, c.g, c.b, c.a)
+    if (b.size or 0) <= 0 then
+        borderTex:Hide()
+    else
+        borderTex:Show()
+    end
+end
+addon.ApplyBorder = ApplyBorder
 
 local function ApplyPosition()
     if not indicator then return end
@@ -166,6 +244,10 @@ local function CreateIndicator()
     indicator:SetFrameStrata("MEDIUM")
     indicator:SetClampedToScreen(true)
 
+    borderTex = indicator:CreateTexture(nil, "BACKGROUND")
+    borderTex:SetTexture("Interface\\Buttons\\WHITE8X8")
+    borderTex:SetAllPoints(indicator)
+
     indicatorTex = indicator:CreateTexture(nil, "ARTWORK")
     indicatorTex:SetTexture("Interface\\Buttons\\WHITE8X8")
     indicatorTex:SetAllPoints(indicator)
@@ -211,6 +293,7 @@ end
 
 local function ApplyAll()
     ApplyPosition()
+    ApplyBorder()
     ApplyShape()
     ApplyLockState()
     UpdateIndicator()

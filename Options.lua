@@ -56,6 +56,45 @@ local function MakeEditBox(parent, width)
     return eb
 end
 
+local dropdownCounter = 0
+local function MakeDropdown(parent, width, getItems, getValue, setValue)
+    dropdownCounter = dropdownCounter + 1
+    local dd = CreateFrame("Frame", "MeleeIndicatorDropdown" .. dropdownCounter, parent, "UIDropDownMenuTemplate")
+    UIDropDownMenu_SetWidth(dd, width or 160)
+
+    local function SetTextFromValue()
+        local current = getValue()
+        local label
+        for _, item in ipairs(getItems()) do
+            if item.path == current then
+                label = item.name
+                break
+            end
+        end
+        UIDropDownMenu_SetText(dd, label or "Custom")
+    end
+
+    UIDropDownMenu_Initialize(dd, function(self, level)
+        local current = getValue()
+        for _, item in ipairs(getItems()) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = item.name
+            info.value = item.path
+            info.checked = (item.path == current)
+            info.func = function()
+                setValue(item.path)
+                SetTextFromValue()
+                CloseDropDownMenus()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    dd.Refresh = SetTextFromValue
+    SetTextFromValue()
+    return dd
+end
+
 local function ShowColorPicker(r, g, b, a, onChange)
     local function apply()
         local nr, ng, nb = ColorPickerFrame:GetColorRGB()
@@ -128,7 +167,7 @@ end
 
 local function BuildOptions()
     options = CreateFrame("Frame", "MeleeIndicatorOptions", UIParent, "BackdropTemplate")
-    options:SetSize(360, 560)
+    options:SetSize(360, 700)
     options:SetPoint("CENTER")
     options:SetFrameStrata("HIGH")
     options:SetMovable(true)
@@ -192,7 +231,38 @@ local function BuildOptions()
     sizeSlider:SetPoint("TOPLEFT", shapeButtons[1], "BOTTOMLEFT", 4, -24)
     widgets.sizeSlider = sizeSlider
 
-    local posLabel = MakeLabel(options, "Position (drag indicator or type X/Y):", sizeSlider, -4, -24)
+    local borderHeader = options:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    borderHeader:SetPoint("TOPLEFT", sizeSlider, "BOTTOMLEFT", -4, -24)
+    borderHeader:SetText("Border:")
+
+    local borderDropdown = MakeDropdown(options, 180, addon.GetBorderTextureChoices,
+        function() return MeleeIndicatorDB.border.texture end,
+        function(path)
+            MeleeIndicatorDB.border.texture = path
+            addon.ApplyBorder()
+        end)
+    borderDropdown:SetPoint("TOPLEFT", borderHeader, "BOTTOMLEFT", -16, -2)
+    widgets.borderDropdown = borderDropdown
+
+    local borderSizeSlider = MakeSlider(options, "Border thickness (0 = off)", 0, 8, 1, function(value)
+        MeleeIndicatorDB.border.size = value
+        addon.ApplyShape()
+        addon.ApplyBorder()
+    end)
+    borderSizeSlider:SetPoint("TOPLEFT", borderDropdown, "BOTTOMLEFT", 20, -16)
+    widgets.borderSizeSlider = borderSizeSlider
+
+    local borderSwatch = MakeColorSwatch(options, "Border color",
+        function() return MeleeIndicatorDB.border.color end,
+        function(r, g, b, a)
+            local c = MeleeIndicatorDB.border.color
+            c.r, c.g, c.b, c.a = r, g, b, a
+            addon.ApplyBorder()
+        end)
+    borderSwatch:SetPoint("TOPLEFT", borderSizeSlider, "BOTTOMLEFT", -20, -18)
+    widgets.borderSwatch = borderSwatch
+
+    local posLabel = MakeLabel(options, "Position (drag indicator or type X/Y):", borderSwatch, 0, -16)
 
     local xLabel = options:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     xLabel:SetPoint("TOPLEFT", posLabel, "BOTTOMLEFT", 0, -10)
@@ -288,6 +358,10 @@ local function RefreshOptions()
     end
     widgets.sizeSlider:SetValue(MeleeIndicatorDB.size)
     widgets.sizeSlider.valueText:SetText(tostring(MeleeIndicatorDB.size))
+    widgets.borderSizeSlider:SetValue(MeleeIndicatorDB.border.size or 0)
+    widgets.borderSizeSlider.valueText:SetText(tostring(MeleeIndicatorDB.border.size or 0))
+    widgets.borderDropdown.Refresh()
+    widgets.borderSwatch.Refresh()
     widgets.xEdit:SetText(tostring(MeleeIndicatorDB.position.x or 0))
     widgets.yEdit:SetText(tostring(MeleeIndicatorDB.position.y or 0))
     widgets.spellEdit:SetText(MeleeIndicatorDB.rangeSpell or "")
