@@ -36,10 +36,10 @@ function addon.GetBorderTextureChoices()
 end
 
 local defaults = {
-    position = { point = "CENTER", relativePoint = "CENTER", x = 0, y = -150 },
+    position = { point = "CENTER", relativePoint = "CENTER", x = 0, y = -30 },
     size = 40,
     shape = "square",
-    locked = false,
+    locked = true,
     rangeSpell = "",
     rangeSpellBySpec = {},
     inRangeColor = { r = 0.20, g = 1.00, b = 0.20, a = 0.90 },
@@ -149,8 +149,11 @@ local indicatorTex
 local borderTex
 local updateTimer = 0
 
-local CIRCLE_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+local CIRCLE_MASK = "Interface\\Masks\\CircleMaskScalable"
 local NO_MASK = "Interface\\Buttons\\WHITE8X8"
+
+local UPPER_LEFT_VERTEX_IDX = _G.UPPER_LEFT_VERTEX or 0
+local UPPER_RIGHT_VERTEX_IDX = _G.UPPER_RIGHT_VERTEX or 2
 
 local function ResetTexture(tex)
     tex:ClearAllPoints()
@@ -162,9 +165,7 @@ local function ResetTexture(tex)
 end
 
 local function GetTriangleVertexIndices()
-    local upperLeft = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperLeftVertex) or 0
-    local upperRight = (Enum and Enum.VertexOffset and Enum.VertexOffset.UpperRightVertex) or 2
-    return upperLeft, upperRight
+    return UPPER_LEFT_VERTEX_IDX, UPPER_RIGHT_VERTEX_IDX
 end
 
 local function ApplyShape()

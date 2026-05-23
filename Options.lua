@@ -167,7 +167,7 @@ end
 
 local function BuildOptions()
     options = CreateFrame("Frame", "MeleeIndicatorOptions", UIParent, "BackdropTemplate")
-    options:SetSize(360, 740)
+    options:SetSize(420, 740)
     options:SetPoint("CENTER")
     options:SetFrameStrata("HIGH")
     options:SetMovable(true)
