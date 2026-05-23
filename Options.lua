@@ -301,10 +301,7 @@ local function BuildOptions()
     widgets.yEdit = yEdit
 
     local centerBtn = MakeButton(options, "Center", 70, function()
-        MeleeIndicatorDB.position.point = "CENTER"
-        MeleeIndicatorDB.position.relativePoint = "CENTER"
         MeleeIndicatorDB.position.x = 0
-        MeleeIndicatorDB.position.y = -150
         addon.ApplyPosition()
         addon.RefreshOptionsPositionFields()
     end)
