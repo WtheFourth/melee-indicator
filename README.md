@@ -36,11 +36,11 @@ is within range of a chosen melee spell.
 
 ## Compatibility
 
-Built for retail (12.0.5 and later). The TOC also lists 11.2 for users
-who haven't yet updated, but only the current retail patch is actively
-tested. LibSharedMedia-3.0 is detected at runtime &mdash; if another addon
-loads it, additional border textures appear in the dropdown automatically.
-LibSharedMedia is **not** required.
+Built for retail Midnight. The TOC lists all Midnight sub-patches
+(12.0.0, 12.0.1, 12.0.5) so the addon does not show as out of date for
+players on an earlier Midnight build. LibSharedMedia-3.0 is detected at
+runtime &mdash; if another addon loads it, additional border textures
+appear in the dropdown automatically. LibSharedMedia is **not** required.
 
 ## Reporting issues
 

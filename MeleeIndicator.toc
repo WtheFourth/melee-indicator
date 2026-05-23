@@ -1,4 +1,4 @@
-## Interface: 120005, 110200
+## Interface: 120000, 120001, 120005
 ## Title: Melee Indicator
 ## Notes: Shows a configurable shape that changes color based on whether your target is in melee range.
 ## Author: walter.kennedy4
