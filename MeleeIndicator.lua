@@ -228,9 +228,24 @@ addon.ApplyBorder = ApplyBorder
 
 local function ApplyPosition()
     if not indicator then return end
-    local p = MeleeIndicatorDB.position
+    local p = MeleeIndicatorDB.position or {}
     indicator:ClearAllPoints()
-    indicator:SetPoint(p.point or "CENTER", UIParent, p.relativePoint or p.point or "CENTER", p.x or 0, p.y or 0)
+    local ok = pcall(function()
+        indicator:SetPoint(
+            p.point or "CENTER",
+            UIParent,
+            p.relativePoint or p.point or "CENTER",
+            tonumber(p.x) or 0,
+            tonumber(p.y) or 0
+        )
+    end)
+    if not ok then
+        MeleeIndicatorDB.position = CopyDefaults(defaults.position, {})
+        indicator:ClearAllPoints()
+        local d = MeleeIndicatorDB.position
+        indicator:SetPoint(d.point, UIParent, d.relativePoint, d.x, d.y)
+        print("|cff66ccffMelee Indicator|r: saved position was invalid; reset to default.")
+    end
 end
 addon.ApplyPosition = ApplyPosition
 
