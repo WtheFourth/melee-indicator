@@ -150,7 +150,6 @@ local borderTex
 local updateTimer = 0
 
 local CIRCLE_MASK = "Interface\\Masks\\CircleMaskScalable"
-local NO_MASK = "Interface\\Buttons\\WHITE8X8"
 
 local UPPER_LEFT_VERTEX_IDX = _G.UPPER_LEFT_VERTEX or 0
 local UPPER_RIGHT_VERTEX_IDX = _G.UPPER_RIGHT_VERTEX or 2
@@ -158,7 +157,10 @@ local UPPER_RIGHT_VERTEX_IDX = _G.UPPER_RIGHT_VERTEX or 2
 local function ResetTexture(tex)
     tex:ClearAllPoints()
     tex:SetRotation(0)
-    tex:SetMask(NO_MASK)
+    if tex.appliedMask and tex.RemoveMaskTexture then
+        tex:RemoveMaskTexture(tex.appliedMask)
+        tex.appliedMask = nil
+    end
     if tex.SetVertexOffset then
         for i = 0, 3 do tex:SetVertexOffset(i, 0, 0) end
     end
@@ -185,10 +187,16 @@ local function ApplyShape()
         indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -borderSize, borderSize)
     elseif shape == "circle" then
         borderTex:SetAllPoints(indicator)
-        borderTex:SetMask(CIRCLE_MASK)
         indicatorTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", borderSize, -borderSize)
         indicatorTex:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -borderSize, borderSize)
-        indicatorTex:SetMask(CIRCLE_MASK)
+        if indicator.borderCircleMask and borderTex.AddMaskTexture then
+            borderTex:AddMaskTexture(indicator.borderCircleMask)
+            borderTex.appliedMask = indicator.borderCircleMask
+        end
+        if indicator.fillCircleMask and indicatorTex.AddMaskTexture then
+            indicatorTex:AddMaskTexture(indicator.fillCircleMask)
+            indicatorTex.appliedMask = indicator.fillCircleMask
+        end
     elseif shape == "diamond" then
         local inset = size * 0.146
         borderTex:SetPoint("TOPLEFT", indicator, "TOPLEFT", inset, -inset)
@@ -348,6 +356,18 @@ local function CreateIndicator()
     indicatorTex = indicator:CreateTexture(nil, "ARTWORK")
     indicatorTex:SetTexture("Interface\\Buttons\\WHITE8X8")
     indicatorTex:SetAllPoints(indicator)
+
+    if indicator.CreateMaskTexture then
+        local borderMask = indicator:CreateMaskTexture()
+        borderMask:SetTexture(CIRCLE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        borderMask:SetAllPoints(borderTex)
+        indicator.borderCircleMask = borderMask
+
+        local fillMask = indicator:CreateMaskTexture()
+        fillMask:SetTexture(CIRCLE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        fillMask:SetAllPoints(indicatorTex)
+        indicator.fillCircleMask = fillMask
+    end
 
     local hint = indicator:CreateTexture(nil, "OVERLAY")
     hint:SetColorTexture(1, 1, 1, 0.25)

@@ -260,7 +260,7 @@ local function BuildOptions()
             c.r, c.g, c.b, c.a = r, g, b, a
             addon.ApplyBorder()
         end)
-    borderSwatch:SetPoint("TOPLEFT", borderSizeSlider, "BOTTOMLEFT", -20, -18)
+    borderSwatch:SetPoint("TOPLEFT", borderSizeSlider, "BOTTOMLEFT", -4, -18)
     widgets.borderSwatch = borderSwatch
 
     local posLabel = MakeLabel(options, "Position (drag indicator or type X/Y):", borderSwatch, 0, -16)
